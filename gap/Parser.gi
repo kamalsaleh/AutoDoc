@@ -144,14 +144,15 @@ InstallGlobalFunction( AutoDoc_Parser_ReadFiles,
           context_stack, new_man_item, add_man_item, Reset, read_code, title_item, title_item_list, plain_text_mode,
           current_line_unedited, deprecated,
           ReadLineWithLineCount, Normalized_ReadLine, line_number, ErrorWithPos, create_title_item_function,
-          current_line_positition_for_filter, read_session_example;
+          current_line_positition_for_filter, read_session_example, inside_function, pos;
     groupnumber := 0;
     level_scope := 0;
     autodoc_read_line := false;
     context_stack := [ ];
     chapter_info := [ ];
     line_number := 0;
-
+    inside_function := 0;
+    
     ReadLineWithLineCount := function( stream )
         line_number := line_number + 1;
         return ReadLine( stream );
@@ -457,7 +458,19 @@ InstallGlobalFunction( AutoDoc_Parser_ReadFiles,
             else
                 if is_following_line then
                     temp_curr_line := Concatenation( "> ", temp_curr_line );
-                    if PositionSublist( temp_curr_line, ";" ) <> fail then
+                    pos := PositionSublist( temp_curr_line, "function" );
+                    while pos <> fail do
+                      inside_function := inside_function + 1; # count how many function's we are inside
+                      pos := PositionSublist( temp_curr_line, "function", pos + 8 );
+                    od;
+                    if inside_function > 0 then
+                      pos := PositionSublist( temp_curr_line, "end" );
+                      while pos <> fail do
+                        inside_function := inside_function - 1; # count how many function's we are inside
+                        pos := PositionSublist( temp_curr_line, "end", pos + 3 );
+                      od;
+                    fi;
+                    if inside_function = 0  and PositionSublist( temp_curr_line, ";" ) <> fail then
                         is_following_line := false;
                     fi;
                 else
